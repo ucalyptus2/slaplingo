@@ -471,88 +471,79 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /* access modifiers changed from: private */
-    public void savePdf() {
+    private void saveFile(final String fileType) {
+        String dialogExtensionText;
+        String directory;
+        final String extension;
+        final String snackbarMessage;
+        final String shareType;
+
+        if (fileType.equals("pdf")) {
+            dialogExtensionText = getString(R.string.pdf);
+            directory = "Pdf";
+            extension = Constants.pdfExtension;
+            snackbarMessage = "PDF has been saved";
+            shareType = "application/pdf";
+        } else {
+            dialogExtensionText = getString(R.string.txt);
+            directory = "Text doc";
+            extension = ".txt";
+            snackbarMessage = "Doc. has been saved";
+            shareType = "text/plain";
+        }
+
         Dialog dialog = new Dialog(this);
         this.mydialogue = dialog;
         dialog.setContentView(R.layout.dialog_file_name);
         this.mydialogue.setCanceledOnTouchOutside(Boolean.TRUE.booleanValue());
         this.mydialogue.getWindow().setBackgroundDrawable(new ColorDrawable(0));
-        ((TextView) this.mydialogue.findViewById(R.id.extension)).setText(getString(R.string.pdf));
+        ((TextView) this.mydialogue.findViewById(R.id.extension)).setText(dialogExtensionText);
         final EditText editText = (EditText) this.mydialogue.findViewById(R.id.fname);
-        final String format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Long.valueOf(System.currentTimeMillis()));
-        editText.setHint(format);
-        ((TextView) this.mydialogue.findViewById(R.id.save)).setOnClickListener(new View.OnClickListener() {
-            /* class com.applex.snaplingo.MainActivity.AnonymousClass16 */
+        final String defaultFileName = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Long.valueOf(System.currentTimeMillis()));
+        editText.setHint(defaultFileName);
 
+        ((TextView) this.mydialogue.findViewById(R.id.save)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
-                if (editText.length() != 0) {
-                    Document document = new Document();
-                    final String replaceAll = editText.getText().toString().trim().replaceAll(" ", "_");
-                    new File(Environment.getExternalStorageDirectory() + "/SnapLingo", "Pdf").mkdirs();
-                    final String str = Environment.getExternalStorageDirectory() + "/SnapLingo/Pdf/" + replaceAll + Constants.pdfExtension;
-                    try {
-                        PdfWriter.getInstance(document, new FileOutputStream(str));
+                String fileName = editText.length() != 0 ? editText.getText().toString().trim().replaceAll(" ", "_") : defaultFileName;
+                File folder = new File(Environment.getExternalStorageDirectory() + "/SnapLingo", directory);
+                folder.mkdirs();
+                final String filePath = folder.getAbsolutePath() + "/" + fileName + extension;
+                final File file = new File(filePath);
+
+                try {
+                    if (fileType.equals("pdf")) {
+                        Document document = new Document();
+                        PdfWriter.getInstance(document, new FileOutputStream(file));
                         document.open();
                         document.add(new Paragraph(MainActivity.mResultEt.getText().toString().replaceAll("\n", " ")));
                         document.close();
-                        Snackbar.make(MainActivity.this.flmenu, "PDF has been saved", 0).setAction("Share", new View.OnClickListener() {
-                            /* class com.applex.snaplingo.MainActivity.AnonymousClass16.AnonymousClass1 */
-
-                            public void onClick(View view) {
-                                File file = new File(str);
-                                if (file.exists()) {
-                                    Uri unused = MainActivity.this.path = FileProvider.getUriForFile(MainActivity.this, Constants.AUTHORITY_APP, file);
-                                    Intent intent = new Intent();
-                                    intent.setAction("android.intent.action.SEND");
-                                    intent.putExtra("android.intent.extra.TEXT", "sharing");
-                                    intent.putExtra("android.intent.extra.STREAM", MainActivity.this.path);
-                                    intent.addFlags(1);
-                                    intent.setType("Document/*");
-                                    MainActivity.this.startActivity(Intent.createChooser(intent, "SHARE"));
-                                    return;
-                                }
-                                MainActivity mainActivity = MainActivity.this;
-                                Toast.makeText(mainActivity, replaceAll + " missing " + str, 1).show();
-                            }
-                        }).show();
-                    } catch (Exception e) {
-                        Toast.makeText(MainActivity.this, e.getMessage(), 0).show();
+                    } else {
+                        FileOutputStream fos = new FileOutputStream(file);
+                        fos.write(MainActivity.mResultEt.getText().toString().getBytes());
+                        fos.close();
                     }
-                } else {
-                    Document document2 = new Document();
-                    final String str2 = format;
-                    new File(Environment.getExternalStorageDirectory() + "/SnapLingo", "Pdf").mkdirs();
-                    final String str3 = Environment.getExternalStorageDirectory() + "/SnapLingo/Pdf/" + str2 + Constants.pdfExtension;
-                    try {
-                        PdfWriter.getInstance(document2, new FileOutputStream(str3));
-                        document2.open();
-                        document2.add(new Paragraph(MainActivity.mResultEt.getText().toString().replaceAll("\n", " ")));
-                        document2.close();
-                        Snackbar.make(MainActivity.this.flmenu, "PDF has been saved", 0).setAction("Share", new View.OnClickListener() {
-                            /* class com.applex.snaplingo.MainActivity.AnonymousClass16.AnonymousClass2 */
 
-                            public void onClick(View view) {
-                                File file = new File(str3);
-                                if (file.exists()) {
-                                    Uri unused = MainActivity.this.path = FileProvider.getUriForFile(MainActivity.this, "com.sourajit.snaptext.fileprovider", file);
-                                    Intent intent = new Intent();
-                                    intent.setAction("android.intent.action.SEND");
-                                    intent.putExtra("android.intent.extra.TEXT", "sharing");
-                                    intent.putExtra("android.intent.extra.STREAM", MainActivity.this.path);
-                                    intent.addFlags(1);
-                                    intent.setType("Document/*");
-                                    MainActivity.this.startActivity(Intent.createChooser(intent, "SHARE"));
-                                    return;
-                                }
-                                MainActivity mainActivity = MainActivity.this;
-                                Toast.makeText(mainActivity, str2 + " missing " + str3, 1).show();
+                    Snackbar.make(MainActivity.this.flmenu, snackbarMessage, 0).setAction("Share", new View.OnClickListener() {
+                        public void onClick(View view) {
+                            if (file.exists()) {
+                                Uri unused = MainActivity.this.path = FileProvider.getUriForFile(MainActivity.this, Constants.AUTHORITY_APP, file);
+                                Intent intent = new Intent();
+                                intent.setAction("android.intent.action.SEND");
+                                intent.putExtra("android.intent.extra.TEXT", "Sharing File");
+                                intent.putExtra("android.intent.extra.STREAM", MainActivity.this.path);
+                                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                intent.setType(shareType);
+                                MainActivity.this.startActivity(Intent.createChooser(intent, "Share"));
+                            } else {
+                                Toast.makeText(MainActivity.this, fileName + " missing " + filePath, Toast.LENGTH_LONG).show();
                             }
-                        }).show();
-                    } catch (Exception e2) {
-                        Toast.makeText(MainActivity.this, e2.getMessage(), 0).show();
-                    }
+                        }
+                    }).show();
+
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
+
                 MainActivity.this.mydialogue.dismiss();
                 MainActivity.this.flmenu.close(true);
             }
@@ -561,226 +552,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /* access modifiers changed from: private */
-    public void saveDoc() {
-        Dialog dialog = new Dialog(this);
-        this.mydialogue = dialog;
-        dialog.setContentView(R.layout.dialog_file_name);
-        this.mydialogue.setCanceledOnTouchOutside(Boolean.TRUE.booleanValue());
-        this.mydialogue.getWindow().setBackgroundDrawable(new ColorDrawable(0));
-        ((TextView) this.mydialogue.findViewById(R.id.extension)).setText(getString(R.string.txt));
-        final EditText editText = (EditText) this.mydialogue.findViewById(R.id.fname);
-        final String format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Long.valueOf(System.currentTimeMillis()));
-        editText.setHint(format);
-        ((TextView) this.mydialogue.findViewById(R.id.save)).setOnClickListener(new View.OnClickListener() {
-            /* class com.applex.snaplingo.MainActivity.AnonymousClass17 */
+    public void savePdf() {
+        saveFile("pdf");
+    }
 
-            /* JADX WARNING: Removed duplicated region for block: B:18:0x00da  */
-            /* JADX WARNING: Removed duplicated region for block: B:22:0x00e7 A[SYNTHETIC, Splitter:B:22:0x00e7] */
-            /* JADX WARNING: Removed duplicated region for block: B:43:0x019b  */
-            /* JADX WARNING: Removed duplicated region for block: B:49:0x01b9 A[SYNTHETIC, Splitter:B:49:0x01b9] */
-            /* Code decompiled incorrectly, please refer to instructions dump. */
-            public void onClick(android.view.View r14) {
-                /*
-                    r13 = this;
-                    android.widget.EditText r14 = r1
-                    int r14 = r14.length()
-                    java.lang.String r0 = "Share"
-                    java.lang.String r1 = "Doc. has been saved"
-                    java.lang.String r2 = "/"
-                    java.lang.String r3 = "/SnapLingo/Text doc"
-                    java.lang.String r4 = "Text doc"
-                    java.lang.String r5 = "/SnapLingo"
-                    java.lang.String r6 = "\n"
-                    r7 = 0
-                    java.lang.String r8 = ".txt"
-                    java.lang.String r9 = " "
-                    r10 = 0
-                    if (r14 == 0) goto L_0x00f0
-                    java.lang.StringBuilder r14 = new java.lang.StringBuilder
-                    r14.<init>()
-                    android.widget.EditText r11 = r1
-                    android.text.Editable r11 = r11.getText()
-                    java.lang.String r11 = r11.toString()
-                    java.lang.String r11 = r11.trim()
-                    java.lang.String r12 = "_"
-                    java.lang.String r11 = r11.replaceAll(r9, r12)
-                    r14.append(r11)
-                    r14.append(r8)
-                    java.lang.String r14 = r14.toString()
-                    android.widget.EditText r8 = com.applex.snaplingo.MainActivity.mResultEt     // Catch:{ Exception -> 0x00ca }
-                    android.text.Editable r8 = r8.getText()     // Catch:{ Exception -> 0x00ca }
-                    java.lang.String r8 = r8.toString()     // Catch:{ Exception -> 0x00ca }
-                    java.lang.String r6 = r8.replaceAll(r6, r9)     // Catch:{ Exception -> 0x00ca }
-                    java.io.File r8 = new java.io.File     // Catch:{ Exception -> 0x00ca }
-                    java.lang.StringBuilder r9 = new java.lang.StringBuilder     // Catch:{ Exception -> 0x00ca }
-                    r9.<init>()     // Catch:{ Exception -> 0x00ca }
-                    java.io.File r11 = android.os.Environment.getExternalStorageDirectory()     // Catch:{ Exception -> 0x00ca }
-                    r9.append(r11)     // Catch:{ Exception -> 0x00ca }
-                    r9.append(r5)     // Catch:{ Exception -> 0x00ca }
-                    java.lang.String r5 = r9.toString()     // Catch:{ Exception -> 0x00ca }
-                    r8.<init>(r5, r4)     // Catch:{ Exception -> 0x00ca }
-                    r8.mkdirs()     // Catch:{ Exception -> 0x00ca }
-                    java.io.File r4 = new java.io.File     // Catch:{ Exception -> 0x00ca }
-                    java.lang.StringBuilder r5 = new java.lang.StringBuilder     // Catch:{ Exception -> 0x00ca }
-                    r5.<init>()     // Catch:{ Exception -> 0x00ca }
-                    java.io.File r8 = android.os.Environment.getExternalStorageDirectory()     // Catch:{ Exception -> 0x00ca }
-                    r5.append(r8)     // Catch:{ Exception -> 0x00ca }
-                    r5.append(r3)     // Catch:{ Exception -> 0x00ca }
-                    java.lang.String r3 = r5.toString()     // Catch:{ Exception -> 0x00ca }
-                    r4.<init>(r3, r14)     // Catch:{ Exception -> 0x00ca }
-                    java.io.FileOutputStream r3 = new java.io.FileOutputStream     // Catch:{ Exception -> 0x00ca }
-                    r3.<init>(r4)     // Catch:{ Exception -> 0x00ca }
-                    byte[] r5 = r6.getBytes()     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r3.write(r5)     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r3.close()     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    java.lang.StringBuilder r5 = new java.lang.StringBuilder     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r5.<init>()     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    com.applex.snaplingo.MainActivity r6 = com.applex.snaplingo.MainActivity.this     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    java.io.File r6 = r6.getFilesDir()     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r5.append(r6)     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r5.append(r2)     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r5.append(r14)     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    java.lang.String r2 = r5.toString()     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    com.applex.snaplingo.MainActivity r5 = com.applex.snaplingo.MainActivity.this     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    android.widget.RelativeLayout r5 = r5.relativeLayout     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    com.google.android.material.snackbar.Snackbar r1 = com.google.android.material.snackbar.Snackbar.make(r5, r1, r10)     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    com.applex.snaplingo.MainActivity$17$1 r5 = new com.applex.snaplingo.MainActivity$17$1     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r5.<init>(r4, r14, r2)     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    com.google.android.material.snackbar.Snackbar r14 = r1.setAction(r0, r5)     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r14.show()     // Catch:{ Exception -> 0x00c5, all -> 0x00c2 }
-                    r3.close()     // Catch:{ IOException -> 0x00df }
-                    goto L_0x01a3
-                L_0x00c2:
-                    r14 = move-exception
-                    r7 = r3
-                    goto L_0x00e5
-                L_0x00c5:
-                    r14 = move-exception
-                    r7 = r3
-                    goto L_0x00cb
-                L_0x00c8:
-                    r14 = move-exception
-                    goto L_0x00e5
-                L_0x00ca:
-                    r14 = move-exception
-                L_0x00cb:
-                    com.applex.snaplingo.MainActivity r0 = com.applex.snaplingo.MainActivity.this     // Catch:{ all -> 0x00c8 }
-                    java.lang.String r14 = r14.getMessage()     // Catch:{ all -> 0x00c8 }
-                    android.widget.Toast r14 = android.widget.Toast.makeText(r0, r14, r10)     // Catch:{ all -> 0x00c8 }
-                    r14.show()     // Catch:{ all -> 0x00c8 }
-                    if (r7 == 0) goto L_0x01a3
-                    r7.close()
-                    goto L_0x01a3
-                L_0x00df:
-                    r14 = move-exception
-                    r14.printStackTrace()
-                    goto L_0x01a3
-                L_0x00e5:
-                    if (r7 == 0) goto L_0x00ef
-                    r7.close()     // Catch:{ IOException -> 0x00eb }
-                    goto L_0x00ef
-                L_0x00eb:
-                    r0 = move-exception
-                    r0.printStackTrace()
-                L_0x00ef:
-                    throw r14
-                L_0x00f0:
-                    java.lang.StringBuilder r14 = new java.lang.StringBuilder
-                    r14.<init>()
-                    java.lang.String r11 = r2
-                    r14.append(r11)
-                    r14.append(r8)
-                    java.lang.String r14 = r14.toString()
-                    android.widget.EditText r8 = com.applex.snaplingo.MainActivity.mResultEt     // Catch:{ Exception -> 0x018b }
-                    android.text.Editable r8 = r8.getText()     // Catch:{ Exception -> 0x018b }
-                    java.lang.String r8 = r8.toString()     // Catch:{ Exception -> 0x018b }
-                    java.lang.String r6 = r8.replaceAll(r6, r9)     // Catch:{ Exception -> 0x018b }
-                    java.io.File r8 = new java.io.File     // Catch:{ Exception -> 0x018b }
-                    java.lang.StringBuilder r9 = new java.lang.StringBuilder     // Catch:{ Exception -> 0x018b }
-                    r9.<init>()     // Catch:{ Exception -> 0x018b }
-                    java.io.File r11 = android.os.Environment.getExternalStorageDirectory()     // Catch:{ Exception -> 0x018b }
-                    r9.append(r11)     // Catch:{ Exception -> 0x018b }
-                    r9.append(r5)     // Catch:{ Exception -> 0x018b }
-                    java.lang.String r5 = r9.toString()     // Catch:{ Exception -> 0x018b }
-                    r8.<init>(r5, r4)     // Catch:{ Exception -> 0x018b }
-                    r8.mkdirs()     // Catch:{ Exception -> 0x018b }
-                    java.io.File r4 = new java.io.File     // Catch:{ Exception -> 0x018b }
-                    java.lang.StringBuilder r5 = new java.lang.StringBuilder     // Catch:{ Exception -> 0x018b }
-                    r5.<init>()     // Catch:{ Exception -> 0x018b }
-                    java.io.File r8 = android.os.Environment.getExternalStorageDirectory()     // Catch:{ Exception -> 0x018b }
-                    r5.append(r8)     // Catch:{ Exception -> 0x018b }
-                    r5.append(r3)     // Catch:{ Exception -> 0x018b }
-                    java.lang.String r3 = r5.toString()     // Catch:{ Exception -> 0x018b }
-                    r4.<init>(r3, r14)     // Catch:{ Exception -> 0x018b }
-                    java.io.FileOutputStream r3 = new java.io.FileOutputStream     // Catch:{ Exception -> 0x018b }
-                    r3.<init>(r4)     // Catch:{ Exception -> 0x018b }
-                    byte[] r5 = r6.getBytes()     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r3.write(r5)     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r3.close()     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    java.lang.StringBuilder r5 = new java.lang.StringBuilder     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r5.<init>()     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    com.applex.snaplingo.MainActivity r6 = com.applex.snaplingo.MainActivity.this     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    java.io.File r6 = r6.getFilesDir()     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r5.append(r6)     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r5.append(r2)     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r5.append(r14)     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    java.lang.String r2 = r5.toString()     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    com.applex.snaplingo.MainActivity r5 = com.applex.snaplingo.MainActivity.this     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    android.widget.RelativeLayout r5 = r5.relativeLayout     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    com.google.android.material.snackbar.Snackbar r1 = com.google.android.material.snackbar.Snackbar.make(r5, r1, r10)     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    com.applex.snaplingo.MainActivity$17$2 r5 = new com.applex.snaplingo.MainActivity$17$2     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r5.<init>(r4, r14, r2)     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    com.google.android.material.snackbar.Snackbar r14 = r1.setAction(r0, r5)     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r14.show()     // Catch:{ Exception -> 0x0186, all -> 0x0183 }
-                    r3.close()     // Catch:{ IOException -> 0x019f }
-                    goto L_0x01a3
-                L_0x0183:
-                    r14 = move-exception
-                    r7 = r3
-                    goto L_0x01b7
-                L_0x0186:
-                    r14 = move-exception
-                    r7 = r3
-                    goto L_0x018c
-                L_0x0189:
-                    r14 = move-exception
-                    goto L_0x01b7
-                L_0x018b:
-                    r14 = move-exception
-                L_0x018c:
-                    com.applex.snaplingo.MainActivity r0 = com.applex.snaplingo.MainActivity.this     // Catch:{ all -> 0x0189 }
-                    java.lang.String r14 = r14.getMessage()     // Catch:{ all -> 0x0189 }
-                    android.widget.Toast r14 = android.widget.Toast.makeText(r0, r14, r10)     // Catch:{ all -> 0x0189 }
-                    r14.show()     // Catch:{ all -> 0x0189 }
-                    if (r7 == 0) goto L_0x01a3
-                    r7.close()
-                    goto L_0x01a3
-                L_0x019f:
-                    r14 = move-exception
-                    r14.printStackTrace()
-                L_0x01a3:
-                    com.applex.snaplingo.MainActivity r14 = com.applex.snaplingo.MainActivity.this
-                    android.app.Dialog r14 = r14.mydialogue
-                    r14.dismiss()
-                    com.applex.snaplingo.MainActivity r14 = com.applex.snaplingo.MainActivity.this
-                    com.github.clans.fab.FloatingActionMenu r14 = r14.flmenu
-                    r0 = 1
-                    r14.close(r0)
-                    return
-                L_0x01b7:
-                    if (r7 == 0) goto L_0x01c1
-                    r7.close()     // Catch:{ IOException -> 0x01bd }
-                    goto L_0x01c1
-                L_0x01bd:
-                    r0 = move-exception
-                    r0.printStackTrace()
-                L_0x01c1:
-                    throw r14
-                */
-                throw new UnsupportedOperationException("Method not decompiled: com.applex.snaplingo.MainActivity.AnonymousClass17.onClick(android.view.View):void");
-            }
-        });
-        this.mydialogue.show();
+    /* access modifiers changed from: private */
+    public void saveDoc() {
+        saveFile("doc");
     }
 
     /* access modifiers changed from: private */
